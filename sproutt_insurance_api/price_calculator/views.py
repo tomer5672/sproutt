@@ -48,3 +48,8 @@ def order_health_class_df(health_class_df: pd.DataFrame):
     mapping = {health_class_df.columns[0]: 'feet', health_class_df.columns[1]: 'inches'}
     health_class_df.rename(columns=mapping, inplace=True)
     health_class_df.drop(0, inplace=True)
+    health_class_df.reset_index(drop=True, inplace=True)
+    health_class_df['feet'] = health_class_df['feet'].replace(to_replace='[\'|’]', value='', regex=True)
+    health_class_df['feet'] = health_class_df['feet'].astype(int)
+    health_class_df['inches'] = health_class_df['inches'].replace(to_replace='[\"|”]', value='', regex=True)
+    health_class_df['inches'].astype(int)
