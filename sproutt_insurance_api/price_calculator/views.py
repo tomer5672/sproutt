@@ -5,6 +5,15 @@ import os
 from django.core.cache import cache
 
 
+def get_max_column(row, weight):
+    results = []
+    for col in row.index:
+        if weight > row[col]:
+            results.append(col)
+    if results:
+        return results[-1]
+    return None
+
 def calculate_price(request):
     term = request.POST.get('term')
     coverage = request.POST.get('coverage')
@@ -14,12 +23,19 @@ def calculate_price(request):
 
     customer = Customer(term=term, coverage=coverage, age=age, height=height, weight=weight)
 
-    tuple_height = customer.tuple_height
+    feet, inches = customer.tuple_height
+
     # TODO change the df names:
     df1 = get_file_as_df(file_path='Health Class table.xlsx', ordering_function=order_health_class_df, skiprows=3)
     df2 = get_file_as_df(file_path='Rates-table.xlsx', header=[0, 1])
 
-    # factor = df1[df1['term'] == term]['factor'].values[0]
+    relevant_row = df1[(df1['feet'] == feet) & (df1['inches'] == inches)]
+    relevant_row = relevant_row.drop(columns=['feet', 'inches'])
+    health_class_series = relevant_row.apply(lambda row: get_max_column(row, 220), axis=1)
+    if health_class_series:
+        health_class = health_class_series.iloc[0]
+
+    health_class = df1[df1['term'] == term]['factor'].values[0]
     # health_class = df2[df2['age'] == age]['health_class'].values[0]
     # Calculate the price
     # price = coverage / 1000 * factor
@@ -52,4 +68,4 @@ def order_health_class_df(health_class_df: pd.DataFrame):
     health_class_df['feet'] = health_class_df['feet'].replace(to_replace='[\'|’]', value='', regex=True)
     health_class_df['feet'] = health_class_df['feet'].astype(int)
     health_class_df['inches'] = health_class_df['inches'].replace(to_replace='[\"|”]', value='', regex=True)
-    health_class_df['inches'].astype(int)
+    health_class_df['inches'] = health_class_df['inches'].astype(int)
