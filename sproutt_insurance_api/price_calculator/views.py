@@ -4,7 +4,44 @@ from sproutt_insurance_api.price_calculator.models import Customer
 import os
 from django.core.cache import cache
 from numify.numify import numify
+from rest_framework import viewsets
+from rest_framework import permissions
 import re
+
+
+def calculate_price(request):
+    term = int(request.POST.get('term'))
+    # calculate as int not double.
+    coverage = int(request.POST.get('coverage'))
+    age = int(request.POST.get('age'))
+    height = request.POST.get('height')
+    weight = request.POST.get('weight')
+
+    customer = Customer(term=term, coverage=coverage, age=age, height=height, weight=weight)
+
+    feet, inches = customer.tuple_height
+
+    # TODO change the df names:
+    health_class_df = get_file_as_df(file_path='Health Class table.xlsx', ordering_function=order_health_class_df,
+                                     skiprows=3)
+    rates_df = get_file_as_df(file_path='Rates-table.xlsx', header=[0, 1])
+
+    relevant_row = health_class_df[(health_class_df['feet'] == feet) & (health_class_df['inches'] == inches)]
+    relevant_row = relevant_row.drop(columns=['feet', 'inches'])
+    health_class_series = relevant_row.apply(lambda row: get_max_column(row, 220), axis=1)
+    if not health_class_series.empty:
+        health_class = health_class_series.iloc[0]
+        coverage_key = get_coverage_range(rates_table=rates_df, coverage_amount=int(coverage))
+        if coverage_key:
+            rate_row = rates_df[
+                (rates_df['coverage']['age/health-class'] == age) & (rates_df['coverage']['term'] == term)]
+            factor = rate_row[coverage_key][health_class]
+            price = coverage / 1000 * factor
+            return {'a':'b'}
+        else:
+            pass
+    else:
+        pass
 
 
 def get_coverage_range(rates_table: pd.DataFrame, coverage_amount: int):
@@ -36,41 +73,6 @@ def get_max_column(row, weight):
     if results:
         return results[-1]
     return None
-
-
-def calculate_price(request):
-    term = int(request.POST.get('term'))
-    # calculate as int not double.
-    coverage = int(request.POST.get('coverage'))
-    age = int(request.POST.get('age'))
-    height = request.POST.get('height')
-    weight = request.POST.get('weight')
-
-    customer = Customer(term=term, coverage=coverage, age=age, height=height, weight=weight)
-
-    feet, inches = customer.tuple_height
-
-    # TODO change the df names:
-    health_class_df = get_file_as_df(file_path='Health Class table.xlsx', ordering_function=order_health_class_df,
-                                     skiprows=3)
-    rates_df = get_file_as_df(file_path='Rates-table.xlsx', header=[0, 1])
-
-    relevant_row = health_class_df[(health_class_df['feet'] == feet) & (health_class_df['inches'] == inches)]
-    relevant_row = relevant_row.drop(columns=['feet', 'inches'])
-    health_class_series = relevant_row.apply(lambda row: get_max_column(row, 220), axis=1)
-    if not health_class_series.empty:
-        health_class = health_class_series.iloc[0]
-        coverage_key = get_coverage_range(rates_table=rates_df, coverage_amount=int(coverage))
-        if coverage_key:
-            rate_row = rates_df[
-                (rates_df['coverage']['age/health-class'] == age) & (rates_df['coverage']['term'] == term)]
-            factor = rate_row[coverage_key][health_class]
-            price = coverage / 1000 * factor
-            # TODO continue
-        else:
-            pass
-    else:
-        pass
 
 
 def get_file_as_df(file_path, ordering_function: callable = lambda *args: None, **kwargs):
