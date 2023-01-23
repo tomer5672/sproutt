@@ -1,4 +1,4 @@
-from sproutt_insurance_api.price_calculator.models import Customer
+from price_calculator.models import Customer
 from rest_framework import serializers
 
 

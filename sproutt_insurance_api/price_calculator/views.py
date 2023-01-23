@@ -1,65 +1,68 @@
 from django.shortcuts import render
 import pandas as pd
-from sproutt_insurance_api.price_calculator.models import Customer
-import os
+from rest_framework.views import APIView
+from price_calculator.models import Customer
+from os.path import dirname, join, getmtime, splitext, basename
 from django.core.cache import cache
 from numify.numify import numify
-from rest_framework import viewsets
-from rest_framework import permissions
 import re
+from rest_framework.response import Response
+from price_calculator.seralizers import CustomerSerializer
 
 
-def calculate_price(request):
-    term = int(request.POST.get('term'))
-    # calculate as int not double.
-    coverage = int(request.POST.get('coverage'))
-    age = int(request.POST.get('age'))
-    height = request.POST.get('height')
-    weight = request.POST.get('weight')
+class PriceViewSet(APIView):
+    def post(self, request):
+        # TODO define in serlizer
+        term = int(request.data.get('term'))
+        # calculate as int not double.
+        coverage = int(request.data.get('coverage'))
+        age = int(request.data.get('age'))
+        height = request.data.get('height')
+        weight = int(request.data.get('weight'))
+        customer = Customer(term=term, coverage=coverage, age=age, height=height, weight=weight)
 
-    customer = Customer(term=term, coverage=coverage, age=age, height=height, weight=weight)
-
-    feet, inches = customer.tuple_height
-
-    # TODO change the df names:
-    health_class_df = get_file_as_df(file_path='Health Class table.xlsx', ordering_function=order_health_class_df,
-                                     skiprows=3)
-    rates_df = get_file_as_df(file_path='Rates-table.xlsx', header=[0, 1])
-
-    relevant_row = health_class_df[(health_class_df['feet'] == feet) & (health_class_df['inches'] == inches)]
-    relevant_row = relevant_row.drop(columns=['feet', 'inches'])
-    health_class_series = relevant_row.apply(lambda row: get_max_column(row, 220), axis=1)
-    if not health_class_series.empty:
+        feet, inches = customer.tuple_height
+        files_dir = join(dirname(__file__), 'files')
+        health_class_df = get_file_as_df(file_path=join(files_dir, 'Health Class table.xlsx'),
+                                         ordering_function=order_health_class_df,
+                                         skiprows=3)
+        rates_df = get_file_as_df(file_path=join(files_dir, 'Rates-table.xlsx'), header=[0, 1])
+        relevant_row = health_class_df[(health_class_df['feet'] == feet) & (health_class_df['inches'] == inches)]
+        relevant_row = relevant_row.drop(columns=['feet', 'inches'])
+        health_class_series = relevant_row.apply(lambda row: get_max_column(row, weight), axis=1)
         health_class = health_class_series.iloc[0]
-        coverage_key = get_coverage_range(rates_table=rates_df, coverage_amount=int(coverage))
+        if health_class == 'Declined':
+            return Response({'not confirm message': 'we can not insure you because your weight is too high'})
+        if health_class == 'Declined_lower_limit':
+            return Response({'not confirm message': 'we can not insure you because your weight is too low'})
+        coverage_key = get_coverage_range(rates_table=rates_df, coverage_amount=coverage)
         if coverage_key:
             rate_row = rates_df[
                 (rates_df['coverage']['age/health-class'] == age) & (rates_df['coverage']['term'] == term)]
-            factor = rate_row[coverage_key][health_class]
-            price = coverage / 1000 * factor
-            return {'a':'b'}
+            factor = rate_row[coverage_key][health_class].iloc[0]
+            price = round(coverage / 1000 * factor, 3)
+            return Response({'price': price, 'health-class': health_class, 'term': term,
+                             'coverage': coverage})
         else:
-            pass
-    else:
-        pass
+            return Response({'not confirm message': 'coverage amount illegal'})
 
 
 def get_coverage_range(rates_table: pd.DataFrame, coverage_amount: int):
     regex = '\$\d+[kKmMbB]? - \$\d+[kKmMbB]?'
     range_list_str = set([col[0] for col in rates_table.columns if re.match(regex, col[0])])
     for range_str in range_list_str:
-        low_limit, upper_limit = re.match('\$(\d+[kKmMbB]?) - \$(\d+[kKmMbB]?)', range_str).groups()
-        if re.match('^([0-9]*)(\s)?([kKmMbB])$', low_limit):
-            low_limit = numify(low_limit)
+        low_limit_str, upper_limit_str = re.match('\$(\d+[kKmMbB]?) - \$(\d+[kKmMbB]?)', range_str).groups()
+        if re.match('^([0-9]*)(\s)?([kKmMbB])$', low_limit_str):
+            low_limit = numify(low_limit_str)
             low_limit -= 1
         else:
-            low_limit = int(low_limit)
-        if re.match('^([0-9]*)(\s)?([kKmMbB])$', upper_limit):
-            number, letter = re.match('^([0-9]*)\s?([kKmMbB])$', upper_limit).groups()
-            upper_limit = f'{int(number) + 1} {letter}'  # in order to include the numbers between each category.
-            upper_limit = numify(upper_limit)
+            low_limit = int(low_limit_str)
+        if re.match('^([0-9]*)(\s)?([kKmMbB])$', upper_limit_str):
+            number, letter = re.match('^([0-9]*)\s?([kKmMbB])$', upper_limit_str).groups()
+            upper_limit_str = f'{int(number) + 1} {letter}'  # in order to include the numbers between each category.
+            upper_limit = numify(upper_limit_str)
         else:
-            upper_limit = int(upper_limit)
+            upper_limit = int(upper_limit_str)
         if low_limit <= coverage_amount < upper_limit:
             return range_str
     return None
@@ -72,12 +75,12 @@ def get_max_column(row, weight):
             results.append(col)
     if results:
         return results[-1]
-    return None
+    return 'Declined_lower_limit'
 
 
 def get_file_as_df(file_path, ordering_function: callable = lambda *args: None, **kwargs):
-    file_modified_timestamp = os.path.getmtime(file_path)
-    file_name = os.path.splitext(os.path.basename(file_path))[0]
+    file_modified_timestamp = getmtime(file_path)
+    file_name = splitext(basename(file_path))[0]
     data_file = cache.get(file_name)
     last_modified_timestamp_key = f'{file_name}_last_modified'
     last_modified_timestamp = cache.get(last_modified_timestamp_key)

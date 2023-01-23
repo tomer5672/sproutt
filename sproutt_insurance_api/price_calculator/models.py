@@ -13,7 +13,8 @@ class Customer(models.Model):
     def tuple_height(self) -> tuple:
         # TODO
         height = str(self.height).replace(' ', '')
-        return tuple(height.split('ft'))
+        feet, inches = height.split('ft')
+        return (int(feet), int(inches))
 
 # price = models.DecimalField(max_digits=10, decimal_places=2)
 # health_class = models.CharField(max_length=20)
