@@ -8,19 +8,22 @@ import re
 
 
 def get_coverage_range(rates_table: pd.DataFrame, coverage_amount: int):
-    regex = '\$\d+kKmMbB? - \$\d+[kKmMbB]?'
+    regex = '\$\d+[kKmMbB]? - \$\d+[kKmMbB]?'
     range_list_str = set([col[0] for col in rates_table.columns if re.match(regex, col[0])])
     for range_str in range_list_str:
         low_limit, upper_limit = re.match('\$(\d+[kKmMbB]?) - \$(\d+[kKmMbB]?)', range_str).groups()
         if re.match('^([0-9]*)(\s)?([kKmMbB])$', low_limit):
             low_limit = numify(low_limit)
+            low_limit -= 1
         else:
             low_limit = int(low_limit)
         if re.match('^([0-9]*)(\s)?([kKmMbB])$', upper_limit):
+            number, letter = re.match('^([0-9]*)\s?([kKmMbB])$', upper_limit).groups()
+            upper_limit = f'{int(number) + 1} {letter}'  # in order to include the numbers between each category.
             upper_limit = numify(upper_limit)
         else:
             upper_limit = int(upper_limit)
-        if low_limit < coverage_amount < upper_limit:
+        if low_limit <= coverage_amount < upper_limit:
             return range_str
     return None
 
