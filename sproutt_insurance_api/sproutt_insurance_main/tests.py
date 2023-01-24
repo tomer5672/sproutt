@@ -4,9 +4,6 @@ from rest_framework.test import APITestCase
 
 
 class CreateUrlTest(APITestCase):
-    """
-    Test cases for the `create` method of the `UrlViewSet` class.
-    """
 
     def setUp(self):
         """
