@@ -23,7 +23,7 @@ class PriceViewSet(APIView):
         except InsuranceDeclineException as decline_exception:
             return JsonResponse(data=decline_exception.to_dict(), status=400)
         except Exception as general_exception:
-            logger.error(general_exception)
+            logger.exception(general_exception)
             return JsonResponse(data={'error': 'Internal server error'}, status=500)
 
         result_dict = {'price': calculated_result.price,
@@ -32,4 +32,4 @@ class PriceViewSet(APIView):
                        'coverage': calculated_result.coverage
                        }
         logger.info(f'result_dict: {str(result_dict)}')
-        return Response(result_dict)
+        return JsonResponse(data=result_dict, status=200)
