@@ -18,6 +18,7 @@ class PriceViewSet(APIView):
         height = request.data.get('height')
         weight = int(request.data.get('weight'))
         customer = Customer(term=term, coverage=coverage, age=age, height=height, weight=weight)
+        #calculated_result: CalculatedResult = get_price_object(customer=customer)
         try:
             calculated_result: CalculatedResult = get_price_object(customer=customer)
         except InsuranceDeclineException as decline_exception:
@@ -27,7 +28,7 @@ class PriceViewSet(APIView):
             return JsonResponse(data={'error': 'Internal server error'}, status=500)
 
         result_dict = {'price': calculated_result.price,
-                       'health_class': calculated_result.health_class,
+                       'health-class': calculated_result.health_class,
                        'term': calculated_result.term,
                        'coverage': calculated_result.coverage
                        }
