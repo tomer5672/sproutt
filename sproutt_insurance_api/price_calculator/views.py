@@ -31,5 +31,5 @@ class PriceViewSet(APIView):
                        'term': calculated_result.term,
                        'coverage': calculated_result.coverage
                        }
-        logger.info(f'output: {str(result_dict)}')
+        logger.info(f'result_dict: {str(result_dict)}')
         return Response(result_dict)
