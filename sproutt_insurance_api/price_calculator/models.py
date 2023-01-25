@@ -1,7 +1,7 @@
 from django.db import models
 
 
-# Create your models here.
+# models for price_calculator app.
 class Customer(models.Model):
     term = models.PositiveIntegerField()
     age = models.PositiveIntegerField()

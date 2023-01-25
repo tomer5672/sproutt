@@ -12,5 +12,4 @@ ILLEGAL_HEIGHT_MESSAGE = 'Height illegal'
 INVALID_INPUT_MESSAGE = {'error': 'Invalid input'}
 RANGE_FIELD_REGEX = '\$(\d+\s?[kKmMbB]?) - \$(\d+\s?[kKmMbB]?)'
 LIMIT_REGEX = '^(\d+)\s?([kKmMbB])$'
-
 DECLINED_STATUS = 'Declined'

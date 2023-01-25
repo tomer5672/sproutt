@@ -1,23 +1,25 @@
+import os
 import pandas
-import pandas as pd
-
+from os.path import dirname, join, getmtime, splitext, basename
+from numify.numify import numify
+import re
+from dotenv import load_dotenv
+from django.core.cache import cache
 from price_calculator.consts import FEET_KEY, INCHES_KEY, DECLINED_LOW_WEIGHT, LAST_MODIFIED_CACHE_KEY, \
     LOW_WEIGHT_MESSAGE, HIGH_WEIGHT_MESSAGE, COVERAGE_ILLEGAL_MESSAGE, RANGE_FIELD_REGEX, LIMIT_REGEX, \
     ILLEGAL_AGE_MESSAGE, ILLEGAL_TERM_MESSAGE, ILLEGAL_COMBINATION_MESSAGE, ILLEGAL_HEIGHT_MESSAGE, DECLINED_STATUS
 from price_calculator.models import Customer, CalculatedResult, InsuranceDeclineException
-from os.path import dirname, join, getmtime, splitext, basename
-from django.core.cache import cache
-from numify.numify import numify
-import re
+
+load_dotenv()
 
 
 def get_price_object(customer: Customer):
     feet, inches = customer.tuple_height
     files_dir = join(dirname(__file__), 'files')
-    health_class_df = get_file_as_df(file_path=join(files_dir, 'Health Class table.xlsx'),
+    health_class_df = get_file_as_df(file_path=join(files_dir, os.environ.get('HEALTH_CLASS_TABLE_FILE')),
                                      ordering_function=order_health_class_df,
                                      skiprows=3)
-    rates_df = get_file_as_df(file_path=join(files_dir, 'Rates-table.xlsx'), header=[0, 1])
+    rates_df = get_file_as_df(file_path=join(files_dir, os.environ.get('RATES_TABLE_FILE')), header=[0, 1])
     height_row = get_height_row(health_class_df=health_class_df, feet=feet, inches=inches)
     health_class_series = height_row.apply(lambda row: get_weight_max_column(row, customer.weight), axis=1)
     health_class = health_class_series.iloc[0]
@@ -38,7 +40,7 @@ def get_price_object(customer: Customer):
     return result
 
 
-def get_coverage_range(rates_table: pd.DataFrame, coverage_amount: int) -> str:
+def get_coverage_range(rates_table: pandas.DataFrame, coverage_amount: int) -> str:
     # find the right range for input coverage.
     range_list_str = set(
         [(col[0], re.match(RANGE_FIELD_REGEX, col[0])) for col in rates_table.columns if
@@ -81,14 +83,14 @@ def get_file_as_df(file_path: str, ordering_function: callable = lambda *args: N
     last_modified_timestamp_key = f'{file_name}_{LAST_MODIFIED_CACHE_KEY}'
     last_modified_timestamp = cache.get(last_modified_timestamp_key)
     if last_modified_timestamp is None or last_modified_timestamp != file_modified_timestamp or data_file is None:
-        data_file: pd.DataFrame = pd.read_excel(file_path, **kwargs)
+        data_file: pandas.DataFrame = pandas.read_excel(file_path, **kwargs)
         ordering_function(data_file)
         cache.set(file_name, data_file)
         cache.set(last_modified_timestamp_key, file_modified_timestamp)
     return data_file
 
 
-def order_health_class_df(health_class_df: pd.DataFrame) -> None:
+def order_health_class_df(health_class_df: pandas.DataFrame) -> None:
     # drop the first line because it is not a relevant data.
     # parse height as feet and inches integers.
     mapping = {health_class_df.columns[0]: FEET_KEY, health_class_df.columns[1]: INCHES_KEY}

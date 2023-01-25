@@ -1,11 +1,10 @@
+import logging
 from rest_framework.views import APIView
+from django.http import JsonResponse
 
 from price_calculator.consts import INVALID_INPUT_MESSAGE
 from price_calculator.models import Customer, CalculatedResult, InsuranceDeclineException
 from price_calculator.price_calculator_app import get_price_object
-from django.http import JsonResponse
-import logging
-
 from price_calculator.seralizers import CustomerSerializer
 
 logger = logging.getLogger(__name__)
