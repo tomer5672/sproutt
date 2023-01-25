@@ -23,6 +23,13 @@ class CalculatedResult(models.Model):
     term = models.PositiveIntegerField()
     coverage = models.DecimalField(max_digits=10, decimal_places=2)
 
+    def to_dict(self):
+        return {'price': self.price,
+                'health-class': self.health_class,
+                'term': self.term,
+                'coverage': self.coverage
+                }
+
 
 class InsuranceDeclineException(Exception):
     def __init__(self, decline_message='insurance decline', *args):

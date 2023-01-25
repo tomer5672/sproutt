@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 class PriceViewSet(APIView):
     def post(self, request):
         serializer = CustomerSerializer(data=request.data)
+        logger.info(f'input: {str(request.data)}')
         if not serializer.is_valid():
             return JsonResponse(data={'error': 'Invalid input'}, status=400)
         term = int(request.data.get('term'))
@@ -25,15 +26,11 @@ class PriceViewSet(APIView):
         try:
             calculated_result: CalculatedResult = get_price_object(customer=customer)
         except InsuranceDeclineException as decline_exception:
+            logger.info(f'insurance decline: {str(decline_exception.to_dict())}')
             return JsonResponse(data=decline_exception.to_dict(), status=400)
         except Exception as general_exception:
             logger.exception(general_exception)
             return JsonResponse(data={'error': 'Internal server error'}, status=500)
-
-        result_dict = {'price': calculated_result.price,
-                       'health-class': calculated_result.health_class,
-                       'term': calculated_result.term,
-                       'coverage': calculated_result.coverage
-                       }
-        logger.info(f'result_dict: {str(result_dict)}')
+        result_dict = calculated_result.to_dict()
+        logger.info(f'result: {str(result_dict)}')
         return JsonResponse(data=result_dict, status=200)
