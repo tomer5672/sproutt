@@ -9,7 +9,7 @@ ILLEGAL_AGE_MESSAGE = 'age illegal'
 ILLEGAL_TERM_MESSAGE = 'term illegal'
 ILLEGAL_COMBINATION_MESSAGE = 'combination between age and term illegal'
 ILLEGAL_HEIGHT_MESSAGE = 'Height illegal'
-
+INVALID_INPUT_MESSAGE = {'error': 'Invalid input'}
 RANGE_FIELD_REGEX = '\$(\d+\s?[kKmMbB]?) - \$(\d+\s?[kKmMbB]?)'
 LIMIT_REGEX = '^(\d+)\s?([kKmMbB])$'
 

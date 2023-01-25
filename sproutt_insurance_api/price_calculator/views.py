@@ -1,5 +1,7 @@
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from price_calculator.consts import INVALID_INPUT_MESSAGE
 from price_calculator.models import Customer, CalculatedResult, InsuranceDeclineException
 from price_calculator.price_calculator_app import get_price_object
 from django.http import JsonResponse
@@ -15,7 +17,7 @@ class PriceViewSet(APIView):
         serializer = CustomerSerializer(data=request.data)
         logger.info(f'input: {str(request.data)}')
         if not serializer.is_valid():
-            return JsonResponse(data={'error': 'Invalid input'}, status=400)
+            return JsonResponse(data=INVALID_INPUT_MESSAGE, status=400)
         term = int(request.data.get('term'))
         # calculate as int not double.
         coverage = int(request.data.get('coverage'))
