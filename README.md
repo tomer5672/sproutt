@@ -20,6 +20,12 @@ cd .\sproutt_insurance_api\
 python manage.py runserver
 ```
 
+### testing
+```
+cd .\sproutt_insurance_api\
+python manage.py test
+```
+
 ### API Endpoints
 
 | POST | /price/ | to calculate price by factors(see more in README.md in price_calculator folder).
