@@ -5,12 +5,16 @@ from price_calculator.price_calculator_app import get_price_object
 from django.http import JsonResponse
 import logging
 
+from price_calculator.seralizers import CustomerSerializer
+
 logger = logging.getLogger(__name__)
 
 
 class PriceViewSet(APIView):
     def post(self, request):
-        # TODO define in serlizer
+        serializer = CustomerSerializer(data=request.data)
+        if not serializer.is_valid():
+            return JsonResponse(data={'error': 'Invalid input'}, status=400)
         term = int(request.data.get('term'))
         # calculate as int not double.
         coverage = int(request.data.get('coverage'))
@@ -18,7 +22,6 @@ class PriceViewSet(APIView):
         height = request.data.get('height')
         weight = int(request.data.get('weight'))
         customer = Customer(term=term, coverage=coverage, age=age, height=height, weight=weight)
-        #calculated_result: CalculatedResult = get_price_object(customer=customer)
         try:
             calculated_result: CalculatedResult = get_price_object(customer=customer)
         except InsuranceDeclineException as decline_exception:
