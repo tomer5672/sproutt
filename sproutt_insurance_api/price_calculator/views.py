@@ -1,4 +1,3 @@
-from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from price_calculator.consts import INVALID_INPUT_MESSAGE
@@ -13,6 +12,8 @@ logger = logging.getLogger(__name__)
 
 
 class PriceViewSet(APIView):
+    http_method_names = ['post']
+
     def post(self, request):
         serializer = CustomerSerializer(data=request.data)
         logger.info(f'input: {str(request.data)}')
