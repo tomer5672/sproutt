@@ -21,13 +21,13 @@ def get_price_object(customer: Customer):
                                      skiprows=3)
     rates_df = get_file_as_df(file_path=join(files_dir, os.environ.get('RATES_TABLE_FILE')), header=[0, 1])
     height_row = get_height_row(health_class_df=health_class_df, feet=feet, inches=inches)
-    health_class_series = height_row.apply(lambda row: get_weight_max_column(row, customer.weight), axis=1)
+    health_class_series = height_row.apply(lambda row: get_health_class(row, customer.weight), axis=1)
     health_class = health_class_series.iloc[0]
     if health_class == DECLINED_STATUS:
         raise InsuranceDeclineException(HIGH_WEIGHT_MESSAGE)
     if health_class == DECLINED_LOW_WEIGHT:
         raise InsuranceDeclineException(LOW_WEIGHT_MESSAGE)
-    coverage_key = get_coverage_range(rates_table=rates_df, coverage_amount=customer.coverage)
+    coverage_key = get_coverage_range_key(rates_table=rates_df, coverage_amount=customer.coverage)
     if coverage_key:
         rate_row = get_rate_row(rates_df=rates_df, age=customer.age, term=customer.term)
         factor = rate_row[coverage_key][health_class].iloc[0]
@@ -40,7 +40,7 @@ def get_price_object(customer: Customer):
     return result
 
 
-def get_coverage_range(rates_table: pandas.DataFrame, coverage_amount: int) -> str:
+def get_coverage_range_key(rates_table: pandas.DataFrame, coverage_amount: int) -> str:
     # find the right range for input coverage.
     range_list_str = set(
         [(col[0], re.match(RANGE_FIELD_REGEX, col[0])) for col in rates_table.columns if
@@ -65,7 +65,7 @@ def get_coverage_range(rates_table: pandas.DataFrame, coverage_amount: int) -> s
     return None
 
 
-def get_weight_max_column(row, weight) -> str:
+def get_health_class(row, weight) -> str:
     results = []
     for col in row.index:
         if weight > row[col]:
