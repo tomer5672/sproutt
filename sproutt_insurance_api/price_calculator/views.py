@@ -10,7 +10,7 @@ from price_calculator.seralizers import CustomerSerializer
 logger = logging.getLogger(__name__)
 
 
-class PriceViewSet(APIView):
+class PriceView(APIView):
     http_method_names = ['post']
 
     def post(self, request):
@@ -31,7 +31,7 @@ class PriceViewSet(APIView):
             logger.info(f'insurance decline: {str(decline_exception.to_dict())}')
             return JsonResponse(data=decline_exception.to_dict(), status=400)
         except Exception as general_exception:
-            logger.exception(general_exception)
+            logger.exception(f"Unexpected error: {general_exception}")
             return JsonResponse(data={'error': 'Internal server error'}, status=500)
         result_dict = calculated_result.to_dict()
         logger.info(f'result: {str(result_dict)}')

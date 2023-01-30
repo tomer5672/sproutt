@@ -1,7 +1,7 @@
 from django.urls import path
-from price_calculator.views import PriceViewSet
+from price_calculator.views import PriceView
 
 
 urlpatterns = [
-    path('price/', PriceViewSet.as_view(), name='url-calculate'),
+    path('price/', PriceView.as_view(), name='url-calculate'),
 ]
